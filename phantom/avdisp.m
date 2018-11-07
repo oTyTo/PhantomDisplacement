@@ -14,9 +14,9 @@ load('avdata.mat')
 % %dont use pure cover data
 % avg = avg(1:end-1,:);
 %% phantom specs
-P_height = 9.02;%(mm)
-P_cali = 4356;%(points)
-P_bottom = 18060;
+P_height = 9.05;%(mm)
+P_cali = 2945;%(points)
+P_bottom = 17320;
 P_unit = P_height/(P_bottom-P_cali);
 
 %% down sample the input siganl
@@ -40,10 +40,10 @@ plot(avg(end,:),'r');
 
 
 %% more phantom specs (points)
-P_top = 8292;
-P_top_press = 7749;
-P_bot = 17950;
-P_bot_press = 17320;
+P_top = 12130;
+P_top_press = 18730;
+P_bot = 8462;
+P_bot_press = 17490;
 %% fft of original signal
 %
 sig = avg(1:end,P_top:P_bot_press);
@@ -63,7 +63,7 @@ xlim([0 15])
 bandsig = sig;
 %% apply band pass filter 
 %apply a bandpass filter
-[z,p,k] = butter(2,[7e6 11e6]*2/freq_sam,'bandpass');
+[z,p,k] = butter(2,[7e6 10e6]*2/freq_sam,'bandpass');
 sos = zp2sos(z,p,k);
 bandsig = sosfilt(sos,sig,2);
 Y = abs(fft(bandsig,NFFT,2)./NFFT);
@@ -91,7 +91,7 @@ plot(bandsig(1,:));
 method        = 2;                       % 1 is with high pass filter, 2 no filter
 para.window   = 1500;                     % window size
 para.delt_w   = round(para.window/50);   % window overlap
-para.tau      = 100;                      % search range
+para.tau      = 50;                      % search range
 para.startP   = 1;                    % selected starting point
 para.endP     = size(bandsig,2);                   % selected ending point
 para.fs       = 1.25e9;                   % sampling rate of your oscilloscope
@@ -155,9 +155,9 @@ for i = 1:1:length(m)
 end
 
 % change all value>0 or abs>30 to mean
-[m,n] = find(tempm>0 | tempm<-40);
+[m,n] = find(tempm>0 | tempm<-50);
 for i = 1:1:length(m)
-    tempm(m(i),n(i)) = mean(tempm(tempm(:,n(i))<0 & tempm(:,n(i))>-40,n(i)));
+    tempm(m(i),n(i)) = mean(tempm(tempm(:,n(i))<0 & tempm(:,n(i))>-50,n(i)));
 end
 tempacc = zeros(size(tempm));
 for i = 1:1:size(tempm,1)
@@ -224,16 +224,38 @@ figure
 subplot(2,1,1),plot(section,smooth_lastint),title('displacement'),xlabel('thickness (mm)'),ylabel('displacement (um)')
 subplot(2,1,2),plot(section(1:end-5),diff_smooth),title('strain'),xlabel('thickness (mm)'),ylabel('strain')
 saveas(gcf,['DiscreteFitting' num2str(mean_diff) '.png'])
-%%
-% rows = find(mean(corr_matrix,2)>0.9);
-% for i = 1:1:length(rows)
-%     figure
-%     plot(avg(rows(i),:)); hold on;
-%     plot(avg(rows(i)+1,:));hold off;
-% end
-% load('simudis.mat')
-% figure, plot(section,inv_lastinte*0.43,'b'), xlabel('signal position (mm)'),ylabel('displacement (um)');
-% hold on
-% plot(loc,dis*1000,'r')
-% legend({'Measured Result','Simulation Result'},'Location','southwest')
-% saveas(gcf,'CompareWithSimulation.png')
+%% compare with simulations
+load('simuwithcali.mat')
+%calculate lines
+p_simu = constrainfit(loc',dis'*1000,0,0,10);
+f_simu = polyval(p_simu,section);
+g = corr2(inv_lastinte*0.43,f_simu);
+p_line = constrainfit(inv_lastinte*0.43,f_simu,0,0,1);
+line = polyval(p_line,inv_lastinte*0.43);
+%calcualte area difference
+area_diff = (sum(abs(inv_lastinte*0.43-f_simu))-0.5*abs(inv_lastinte(1)*0.43-f_simu(1))-0.5*abs(inv_lastinte(end)*0.43-f_simu(end)))*Window_unit;
+area_sim = (sum(f_simu)-0.5*f_simu(1)-0.5*f_simu(end))*Window_unit;
+ratio = area_diff/abs(area_sim);
+
+figure, plot(inv_lastinte*0.43,f_simu),xlabel('experiment displacement (mm)'),ylabel('simulation displacement (um)');
+hold on
+plot(inv_lastinte*0.43,line,'--')
+title(['Correlation Coefficient= ' num2str(g)])
+hold off
+saveas(gcf,'CC.png')
+
+figure, plot(section,inv_lastinte*0.43,'b'), xlabel('signal position (mm)'),ylabel('displacement (um)');
+hold on
+plot(loc,dis*1000,'r')
+xlim([0,3.5])
+hold off
+title(['Area difference ratio= ' num2str(ratio)])
+legend({'Measured Result','Simulation Result'},'Location','southwest')
+saveas(gcf,'CompareWithSimulation.png')
+
+figure, plot(section(1:end-5),diff,'b'), xlabel('signal position (mm)'),ylabel('strain');
+hold on
+plot(loc,strain,'r')
+xlim([0,3.5])
+hold off
+saveas(gcf,'CompareWithSimulationstrain.png')

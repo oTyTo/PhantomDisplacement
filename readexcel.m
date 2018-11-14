@@ -30,4 +30,4 @@ dis = data{1}{1}(:,2);
 strain = data{1}{1}(:,8);
 figure,
 plot(data{1}{1}(:,16),data{1}{1}(:,2))
-save('simuwithoutcali.mat','loc','dis','strain')
+save('simu.mat','loc','dis','strain')

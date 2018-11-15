@@ -2,7 +2,7 @@
 close all;
 clear all;
 clc;
-
+%%change
 
 %% compare displacements
 %read data

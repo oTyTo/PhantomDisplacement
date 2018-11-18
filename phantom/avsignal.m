@@ -7,8 +7,9 @@ tic
 
 
 %% some parameters
-num_f = 3;      %num of files per measurement
-
+num_f = 1;      %num of files per measurement
+rng(0,'twister');
+%p = randperm(200,150);
 %% load data from .mat
 files = dir('**/*.mat'); 
 
@@ -21,7 +22,7 @@ j = 0;
 for i = 1:1:length(files)
     NEWPATH = files(i).folder;
     NAME = files(i).name;
-    if strcmp(NAME,'simudis.mat')==0
+    if strcmp(pwd,NEWPATH)==0
         load([NEWPATH '/' NAME]);
         if strcmp(NEWPATH , PATH{end})
             count(j) = count(j)+1;
@@ -64,7 +65,7 @@ for i = 1:1:M
         point0 = ceil(abs(startTime(i,j))/intevalTime(i,j));
         %point0 = point0 - 1; %when use pico 6000, mat file has one less data point
          tempdata = [data{i}(j,point0+1:end),zeros(1,point0)];
-         cali_data{i}(j,:) = tempdata(1:25000);               %set all signal to same length
+         cali_data{i}(j,:) = tempdata(1:RequestedLength);               %set all signal to same length
     end
 end
 
